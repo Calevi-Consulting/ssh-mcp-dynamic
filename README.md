@@ -59,6 +59,36 @@ Both tools accept:
 - `port` — SSH port (defaults to `SSH_MCP_DEFAULT_PORT`).
 - `timeout` — timeout in ms (defaults to `SSH_MCP_TIMEOUT_MS`).
 
+## Use with Claude Code (CLI)
+
+The quickest way — no clone, no manual build. Claude Code runs it on demand via `npx` straight from GitHub:
+
+```bash
+claude mcp add ssh-mcp -s user \
+  -e SSH_MCP_KEYS='{"prod":"~/keys/prod.pem"}' \
+  -e SSH_MCP_DEFAULT_KEY=prod \
+  -e SSH_MCP_DEFAULT_USER=ubuntu \
+  -- npx -y github:mhereu/ssh-mcp-dynamic
+```
+
+`npx` clones the repo, builds it (via the `prepare` script) and launches the server. Once published to npm you can drop the `github:` prefix and use `npx -y ssh-mcp-dynamic`.
+
+Prefer a local checkout? Build it once and point Claude Code at the compiled file:
+
+```bash
+git clone https://github.com/mhereu/ssh-mcp-dynamic.git
+cd ssh-mcp-dynamic && npm install && npm run build
+
+claude mcp add ssh-mcp -s user \
+  -e SSH_MCP_KEYS='{"prod":"~/keys/prod.pem"}' \
+  -e SSH_MCP_DEFAULT_KEY=prod \
+  -- node "$(pwd)/dist/index.js"
+```
+
+**Scopes** (`-s`): `local` (default, current project only), `user` (all your projects), `project` (saved to a versioned `.mcp.json` to share with your team).
+
+Verify with `claude mcp list`, or `/mcp` inside a session. Remove with `claude mcp remove ssh-mcp`.
+
 ## Use with Claude Desktop
 
 Add the server to your `claude_desktop_config.json`:
