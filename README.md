@@ -61,7 +61,15 @@ Both tools accept:
 
 ## Use with Claude Code (CLI)
 
-The quickest way — no clone, no manual build. Claude Code runs it on demand via `npx` straight from GitHub:
+The quickest way — no clone, no manual build. Claude Code runs it on demand via `npx` straight from GitHub.
+
+**Minimal** — no environment config at all. You provide the host, command and a full key path on every call:
+
+```bash
+claude mcp add ssh-mcp -- npx -y github:Calevi-Consulting/ssh-mcp-dynamic
+```
+
+**With shortcuts and defaults** — preconfigure your keys once so calls can use a short name (e.g. `prod`) and omit the user/port:
 
 ```bash
 claude mcp add ssh-mcp -s user \
