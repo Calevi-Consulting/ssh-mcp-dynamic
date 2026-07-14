@@ -68,7 +68,7 @@ claude mcp add ssh-mcp -s user \
   -e SSH_MCP_KEYS='{"prod":"~/keys/prod.pem"}' \
   -e SSH_MCP_DEFAULT_KEY=prod \
   -e SSH_MCP_DEFAULT_USER=ubuntu \
-  -- npx -y github:mhereu/ssh-mcp-dynamic
+  -- npx -y github:Calevi-Consulting/ssh-mcp-dynamic
 ```
 
 `npx` clones the repo, builds it (via the `prepare` script) and launches the server. Once published to npm you can drop the `github:` prefix and use `npx -y ssh-mcp-dynamic`.
@@ -76,7 +76,7 @@ claude mcp add ssh-mcp -s user \
 Prefer a local checkout? Build it once and point Claude Code at the compiled file:
 
 ```bash
-git clone https://github.com/mhereu/ssh-mcp-dynamic.git
+git clone https://github.com/Calevi-Consulting/ssh-mcp-dynamic.git
 cd ssh-mcp-dynamic && npm install && npm run build
 
 claude mcp add ssh-mcp -s user \
