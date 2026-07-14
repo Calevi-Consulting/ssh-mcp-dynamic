@@ -114,6 +114,46 @@ Add the server to your `claude_desktop_config.json`:
 
 Restart Claude Desktop after editing the config.
 
+## Usage
+
+Once the server is registered, you don't call the tools directly — you ask your MCP client (Claude Code / Claude Desktop) in plain language and it invokes `ssh_exec` / `ssh_sudo_exec` for you. Some example prompts:
+
+```text
+Using ssh-mcp, run `hostname && uptime` on 10.0.0.5 with the prod key.
+
+Check the free disk space on staging.example.com (df -h) via ssh-mcp.
+
+On 10.0.0.5, tail the last 50 lines of /var/log/syslog with sudo.
+
+Restart nginx on web-01.example.com with sudo, then show `systemctl status nginx`.
+
+Run `docker ps` on 203.0.113.10 as user ubuntu on port 2222 using ~/keys/prod.pem.
+```
+
+How those map to a tool call (the client fills this in for you):
+
+```jsonc
+// "run hostname on 10.0.0.5 with the prod key"
+{
+  "tool": "ssh_exec",
+  "host": "10.0.0.5",
+  "command": "hostname",
+  "key": "prod"          // a configured shortcut, or a full path like ~/keys/prod.pem
+}
+
+// "tail syslog with sudo on 10.0.0.5"
+{
+  "tool": "ssh_sudo_exec",
+  "host": "10.0.0.5",
+  "command": "tail -n 50 /var/log/syslog"   // no 'sudo' prefix — the tool adds it
+}
+```
+
+Tips:
+- Mention the host, the command, and which key/user/port when they aren't the configured defaults.
+- Naming the server ("using ssh-mcp…") helps the client pick the right tool when you have several MCP servers registered.
+- For privileged commands ask for "with sudo" so the client uses `ssh_sudo_exec` — and don't put `sudo` in the command yourself.
+
 ## Security notes
 
 - **This server executes arbitrary shell commands on remote hosts**, including with `sudo` via `ssh_sudo_exec`. Only connect it to hosts and keys you control, and only run it with an MCP client you trust.
