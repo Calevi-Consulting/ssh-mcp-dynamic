@@ -1,6 +1,6 @@
 {
   "name": "ssh-mcp-dynamic",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Dynamic SSH MCP server — host and key per call",
   "main": "dist/index.js",
   "bin": {
@@ -25,7 +25,9 @@
   "scripts": {
     "build": "tsc",
     "prepare": "npm run build",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "build:test": "tsc -p tsconfig.test.json",
+    "test": "npm run build:test && node --test \".test-build/test/*.test.js\""
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
