@@ -1,8 +1,8 @@
 # ssh-mcp-dynamic
 
-[![CI](https://github.com/Calevi-Consulting/ssh-mcp-dynamic/actions/workflows/ci.yml/badge.svg)](https://github.com/Calevi-Consulting/ssh-mcp-dynamic/actions/workflows/ci.yml)
+[![CI](https://github.com/Calevi-Consulting/ssh-mcp-dynamic/actions/workflows/ci.yml/badge.svg)](https://github.com/Calevi-Consulting/ssh-mcp-dynamic/actions/workflows/ci.yml) [![npm](https://img.shields.io/npm/v/%40calevi%2Fssh-mcp-dynamic)](https://www.npmjs.com/package/@calevi/ssh-mcp-dynamic)
 
-A minimal [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server that lets an MCP client (e.g. Claude Desktop) run shell commands on remote hosts over SSH. The host, private key, user and port are chosen **per call**, so a single server instance can reach many machines.
+A minimal [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server that lets an MCP client (Claude Code, Claude Desktop) run shell commands on remote hosts over SSH. The host, private key, user and port are chosen **per call**, so a single server instance can reach many machines.
 
 It exposes two tools:
 
@@ -13,21 +13,104 @@ It exposes two tools:
 
 Authentication is key-based only (PEM private keys). No passwords are handled or stored.
 
-## Requirements
+**Contents**: [Quick start](#quick-start) · [Usage](#usage) · [Configuration](#configuration) · [Security model](#security-model) · [Development](#development) · [License](#license)
 
-- Node.js 18+
-- SSH access to the target hosts with a private key
+## Quick start
 
-## Install & build
+You need Node.js 18+ on the machine that runs your MCP client, and SSH access to the target hosts with a private key. The server is published on npm as [`@calevi/ssh-mcp-dynamic`](https://www.npmjs.com/package/@calevi/ssh-mcp-dynamic); `npx` downloads and runs it on demand, so there is nothing to clone or build.
 
-Published on npm as [`@calevi/ssh-mcp-dynamic`](https://www.npmjs.com/package/@calevi/ssh-mcp-dynamic); most users run it through `npx` and never build anything (see [Use with Claude Code](#use-with-claude-code-cli)). To work from a local checkout:
+### Claude Code (CLI)
+
+**Minimal** — no environment config at all. You provide the host, command and a full key path on every call:
 
 ```bash
-npm install
-npm run build
+claude mcp add ssh-mcp -- npx -y @calevi/ssh-mcp-dynamic
 ```
 
-This compiles `src/index.ts` to `dist/index.js`.
+**With shortcuts and defaults** — preconfigure your keys once so calls can use a short name (e.g. `prod`) and omit the user/port, bound the reachable hosts, and keep an audit log:
+
+```bash
+claude mcp add ssh-mcp -s user \
+  -e SSH_MCP_KEYS='{"prod":"~/keys/prod.pem"}' \
+  -e SSH_MCP_DEFAULT_KEY=prod \
+  -e SSH_MCP_DEFAULT_USER=ubuntu \
+  -e SSH_MCP_ALLOWED_HOSTS='10.0.0.*,*.internal.example.com' \
+  -e SSH_MCP_AUDIT_LOG=~/.ssh-mcp/audit.log \
+  -- npx -y @calevi/ssh-mcp-dynamic
+```
+
+**Scopes** (`-s`): `local` (default, current project only), `user` (all your projects), `project` (saved to a versioned `.mcp.json` to share with your team).
+
+Verify with `claude mcp list`, or `/mcp` inside a session. Remove with `claude mcp remove ssh-mcp`.
+
+To pin an exact version use `npx -y @calevi/ssh-mcp-dynamic@1.1.2`. To run straight from GitHub instead (a tagged release, or `main` without the `#tag`), use `npx -y github:Calevi-Consulting/ssh-mcp-dynamic#v1.1.2`; `npx` then clones and builds it via the `prepare` script. For a local checkout see [Development](#development).
+
+### Claude Desktop
+
+Add the server to your `claude_desktop_config.json`:
+
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "ssh-mcp": {
+      "command": "npx",
+      "args": ["-y", "@calevi/ssh-mcp-dynamic"],
+      "env": {
+        "SSH_MCP_KEYS": "{\"prod\":\"~/keys/prod.pem\",\"staging\":\"~/keys/staging.pem\"}",
+        "SSH_MCP_DEFAULT_KEY": "prod",
+        "SSH_MCP_DEFAULT_USER": "ubuntu",
+        "SSH_MCP_ALLOWED_HOSTS": "10.0.0.*,*.internal.example.com",
+        "SSH_MCP_AUDIT_LOG": "~/.ssh-mcp/audit.log"
+      }
+    }
+  }
+}
+```
+
+Restart Claude Desktop after editing the config.
+
+## Usage
+
+Once the server is registered, you don't call the tools directly — you ask your MCP client (Claude Code / Claude Desktop) in plain language and it invokes `ssh_exec` / `ssh_sudo_exec` for you. Some example prompts:
+
+```text
+Using ssh-mcp, run `hostname && uptime` on 10.0.0.5 with the prod key.
+
+Check the free disk space on staging.example.com (df -h) via ssh-mcp.
+
+On 10.0.0.5, tail the last 50 lines of /var/log/syslog with sudo.
+
+Restart nginx on web-01.example.com with sudo, then show `systemctl status nginx`.
+
+Run `docker ps` on 203.0.113.10 as user ubuntu on port 2222 using ~/keys/prod.pem.
+```
+
+How those map to a tool call (the client fills this in for you):
+
+```jsonc
+// "run hostname on 10.0.0.5 with the prod key"
+{
+  "tool": "ssh_exec",
+  "host": "10.0.0.5",
+  "command": "hostname",
+  "key": "prod"          // a configured shortcut, or a full path like ~/keys/prod.pem
+}
+
+// "tail syslog with sudo on 10.0.0.5"
+{
+  "tool": "ssh_sudo_exec",
+  "host": "10.0.0.5",
+  "command": "tail -n 50 /var/log/syslog"   // no 'sudo' prefix — the tool adds it
+}
+```
+
+Tips:
+- Mention the host, the command, and which key/user/port when they aren't the configured defaults.
+- Naming the server ("using ssh-mcp…") helps the client pick the right tool when you have several MCP servers registered.
+- For privileged commands ask for "with sudo" so the client uses `ssh_sudo_exec` — and don't put `sudo` in the command yourself.
 
 ## Configuration
 
@@ -100,113 +183,6 @@ Every call produces one JSON line on stderr (Claude Code and Claude Desktop keep
 
 `outcome` is `ok` (exit code 0), `error` (non-zero exit or connection failure) or `denied` (blocked by the allowlist or host key policy). `key` is the shortcut or path as supplied by the caller. Command output and key material are never logged.
 
-## Use with Claude Code (CLI)
-
-The quickest way — no clone, no build. Claude Code runs the published package on demand via `npx`.
-
-**Minimal** — no environment config at all. You provide the host, command and a full key path on every call:
-
-```bash
-claude mcp add ssh-mcp -- npx -y @calevi/ssh-mcp-dynamic
-```
-
-**With shortcuts and defaults** — preconfigure your keys once so calls can use a short name (e.g. `prod`) and omit the user/port:
-
-```bash
-claude mcp add ssh-mcp -s user \
-  -e SSH_MCP_KEYS='{"prod":"~/keys/prod.pem"}' \
-  -e SSH_MCP_DEFAULT_KEY=prod \
-  -e SSH_MCP_DEFAULT_USER=ubuntu \
-  -e SSH_MCP_ALLOWED_HOSTS='10.0.0.*,*.internal.example.com' \
-  -e SSH_MCP_AUDIT_LOG=~/.ssh-mcp/audit.log \
-  -- npx -y @calevi/ssh-mcp-dynamic
-```
-
-To pin an exact version use `npx -y @calevi/ssh-mcp-dynamic@1.1.1`. To run straight from GitHub instead (a tagged release, or `main` without the `#tag`), use `npx -y github:Calevi-Consulting/ssh-mcp-dynamic#v1.1.1`; `npx` then clones and builds it via the `prepare` script.
-
-Prefer a local checkout? Build it once and point Claude Code at the compiled file:
-
-```bash
-git clone https://github.com/Calevi-Consulting/ssh-mcp-dynamic.git
-cd ssh-mcp-dynamic && npm install && npm run build
-
-claude mcp add ssh-mcp -s user \
-  -e SSH_MCP_KEYS='{"prod":"~/keys/prod.pem"}' \
-  -e SSH_MCP_DEFAULT_KEY=prod \
-  -- node "$(pwd)/dist/index.js"
-```
-
-**Scopes** (`-s`): `local` (default, current project only), `user` (all your projects), `project` (saved to a versioned `.mcp.json` to share with your team).
-
-Verify with `claude mcp list`, or `/mcp` inside a session. Remove with `claude mcp remove ssh-mcp`.
-
-## Use with Claude Desktop
-
-Add the server to your `claude_desktop_config.json`:
-
-- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
-
-```json
-{
-  "mcpServers": {
-    "ssh-mcp": {
-      "command": "npx",
-      "args": ["-y", "@calevi/ssh-mcp-dynamic"],
-      "env": {
-        "SSH_MCP_KEYS": "{\"prod\":\"~/keys/prod.pem\",\"staging\":\"~/keys/staging.pem\"}",
-        "SSH_MCP_DEFAULT_KEY": "prod",
-        "SSH_MCP_DEFAULT_USER": "ubuntu",
-        "SSH_MCP_ALLOWED_HOSTS": "10.0.0.*,*.internal.example.com",
-        "SSH_MCP_AUDIT_LOG": "~/.ssh-mcp/audit.log"
-      }
-    }
-  }
-}
-```
-
-Restart Claude Desktop after editing the config. For a local checkout, use `"command": "node"` with `"args": ["/absolute/path/to/ssh-mcp-dynamic/dist/index.js"]` instead.
-
-## Usage
-
-Once the server is registered, you don't call the tools directly — you ask your MCP client (Claude Code / Claude Desktop) in plain language and it invokes `ssh_exec` / `ssh_sudo_exec` for you. Some example prompts:
-
-```text
-Using ssh-mcp, run `hostname && uptime` on 10.0.0.5 with the prod key.
-
-Check the free disk space on staging.example.com (df -h) via ssh-mcp.
-
-On 10.0.0.5, tail the last 50 lines of /var/log/syslog with sudo.
-
-Restart nginx on web-01.example.com with sudo, then show `systemctl status nginx`.
-
-Run `docker ps` on 203.0.113.10 as user ubuntu on port 2222 using ~/keys/prod.pem.
-```
-
-How those map to a tool call (the client fills this in for you):
-
-```jsonc
-// "run hostname on 10.0.0.5 with the prod key"
-{
-  "tool": "ssh_exec",
-  "host": "10.0.0.5",
-  "command": "hostname",
-  "key": "prod"          // a configured shortcut, or a full path like ~/keys/prod.pem
-}
-
-// "tail syslog with sudo on 10.0.0.5"
-{
-  "tool": "ssh_sudo_exec",
-  "host": "10.0.0.5",
-  "command": "tail -n 50 /var/log/syslog"   // no 'sudo' prefix — the tool adds it
-}
-```
-
-Tips:
-- Mention the host, the command, and which key/user/port when they aren't the configured defaults.
-- Naming the server ("using ssh-mcp…") helps the client pick the right tool when you have several MCP servers registered.
-- For privileged commands ask for "with sudo" so the client uses `ssh_sudo_exec` — and don't put `sudo` in the command yourself.
-
 ## Security model
 
 **This server executes arbitrary shell commands on remote hosts**, including with `sudo` via `ssh_sudo_exec`. It is deliberately thin and does not try to be a policy engine. The controls are layered, and the server only owns some of them:
@@ -227,18 +203,39 @@ Practical notes:
 
 ## Development
 
+### Local checkout
+
 ```bash
+git clone https://github.com/Calevi-Consulting/ssh-mcp-dynamic.git
+cd ssh-mcp-dynamic
 npm install
+npm run build
+```
+
+This compiles `src/index.ts` to `dist/index.js`. Point your MCP client at the compiled file instead of the npm package:
+
+```bash
+claude mcp add ssh-mcp -s user \
+  -e SSH_MCP_KEYS='{"prod":"~/keys/prod.pem"}' \
+  -e SSH_MCP_DEFAULT_KEY=prod \
+  -- node "$(pwd)/dist/index.js"
+```
+
+For Claude Desktop, use `"command": "node"` with `"args": ["/absolute/path/to/ssh-mcp-dynamic/dist/index.js"]`.
+
+### Tests
+
+```bash
 npm test
 ```
 
-Tests use Node's built-in test runner and an in-process SSH server from the `ssh2` package with generated ed25519 keys, so the host key, allowlist and audit paths are exercised over a real SSH handshake with no external dependencies.
+Tests use Node's built-in test runner and an in-process SSH server from the `ssh2` package with generated ed25519 keys, so the host key, allowlist and audit paths are exercised over a real SSH handshake with no external dependencies. The same suite runs in CI on Node 18, 20, 22 and 24 for every pull request, together with a stdio smoke test of the built server and `npm audit`.
 
 ### Releasing
 
 1. Bump `version` in `package.json` on a branch and merge it through a pull request (`main` requires green CI).
 2. Tag the merge commit `vX.Y.Z` and publish a GitHub Release for that tag.
-3. The `Publish to npm` workflow (`.github/workflows/publish.yml`) runs the tests, checks the tag matches `package.json`, and runs `npm publish --provenance`. It authenticates with npm trusted publishing (OIDC), so no npm token lives in the repository; the trusted publisher is configured once on npmjs.com under the package's settings.
+3. The `Publish to npm` workflow (`.github/workflows/publish.yml`) runs the tests, checks the tag matches `package.json`, and runs `npm publish --provenance`. It authenticates with npm trusted publishing (OIDC), so no npm token lives in the repository; the trusted publisher is configured once on npmjs.com under the package's settings. If that version is already on npm the publish step is skipped, so re-publishing a release is safe.
 
 ## License
 

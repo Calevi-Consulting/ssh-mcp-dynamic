@@ -47,5 +47,20 @@ jobs:
             exit 1
           fi
 
+      # Re-publishing a release must not fail: skip when the version is
+      # already on the registry (npm view exits non-zero when it is not).
+      - name: Check whether this version is already on npm
+        id: registry
+        run: |
+          name=$(node -p "require('./package.json').name")
+          version=$(node -p "require('./package.json').version")
+          if npm view "$name@$version" version >/dev/null 2>&1; then
+            echo "$name@$version is already published; the publish step will be skipped."
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish with provenance
+        if: steps.registry.outputs.published == 'false'
         run: npm publish --provenance --access public
