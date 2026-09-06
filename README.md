@@ -1,5 +1,7 @@
 # ssh-mcp-dynamic
 
+[![CI](https://github.com/Calevi-Consulting/ssh-mcp-dynamic/actions/workflows/ci.yml/badge.svg)](https://github.com/Calevi-Consulting/ssh-mcp-dynamic/actions/workflows/ci.yml)
+
 A minimal [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server that lets an MCP client (e.g. Claude Desktop) run shell commands on remote hosts over SSH. The host, private key, user and port are chosen **per call**, so a single server instance can reach many machines.
 
 It exposes two tools:
