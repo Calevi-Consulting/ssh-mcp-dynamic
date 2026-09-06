@@ -29,4 +29,4 @@ The only distribution channel is `npx github:Calevi-Consulting/ssh-mcp-dynamic`,
 - **Short window of stale docs**: between merging this PR and the first publish, the README points at a package that does not exist yet. Publishing immediately after merge closes it.
 - **Rollback**: revert the PR. An npm version cannot be unpublished after 72 hours except via `npm deprecate`; publish only after tests pass on the tagged checkout.
 - **Semver**: 1.1.1 contains no runtime code change over 1.1.0 (metadata, docs, workflow). The tag `v1.1.0` stays as the GitHub-only release.
-- **Trusted publishing needs npm >= 11.5.1**; the workflow upgrades npm before publishing.
+- **Trusted publishing needs npm >= 11.5.1 and Node >= 22.14**; the workflow uses Node 24 and upgrades npm before publishing. Per npm guidance the publish job uses no dependency cache.
