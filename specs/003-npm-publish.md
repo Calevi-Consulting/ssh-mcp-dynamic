@@ -6,21 +6,21 @@
 
 ## Context
 
-The only distribution channel is `npx github:Calevi-Consulting/ssh-mcp-dynamic`, which clones the repository and compiles it on every user's machine. The README has anticipated an npm release since 1.0.0 ("Once published to npm you can drop the `github:` prefix"). The package name `ssh-mcp-dynamic` is unclaimed on registry.npmjs.org (HTTP 404 on 2026-09-06) and the maintainer has an npm account with an active session on the release machine.
+The only distribution channel is `npx github:Calevi-Consulting/ssh-mcp-dynamic`, which clones the repository and compiles it on every user's machine. The README has anticipated an npm release since 1.0.0 ("Once published to npm you can drop the `github:` prefix"). The package is published under the maintainer's npm organization as `@calevi/ssh-mcp-dynamic`; the name is unclaimed on registry.npmjs.org (HTTP 404 on 2026-09-06) and the maintainer has an npm account with an active session on the release machine.
 
 ## Requirements
 
-- R1. `package.json` carries `repository`, `homepage`, `bugs` and `publishConfig.access = public`; version bumped to 1.1.1 so the first npm release corresponds exactly to a tagged commit that includes this metadata.
+- R1. `package.json` is named `@calevi/ssh-mcp-dynamic` (scoped to the `calevi` npm organization; the `ssh-mcp-dynamic` bin name is unchanged) and carries `repository`, `homepage`, `bugs` and `publishConfig.access = public` (required for a public scoped package); version bumped to 1.1.1 so the first npm release corresponds exactly to a tagged commit that includes this metadata.
 - R2. A `Publish to npm` workflow runs when a GitHub Release is published: installs, runs the test suite, verifies the release tag equals `package.json` version, and runs `npm publish --provenance --access public` using npm trusted publishing (OIDC, `id-token: write`). No npm token is stored in the repository.
 - R3. The published tarball contains only `dist/`, `README.md`, `LICENSE` and `package.json`.
 - R4. README install instructions use the npm package for Claude Code and Claude Desktop; the GitHub form remains documented for pinning a tag or tracking `main`; a Releasing section documents the flow.
 
 ## Acceptance Criteria
 
-- [x] AC1. `package.json` version is 1.1.1 and has `repository`, `homepage`, `bugs`, `publishConfig`; `package-lock.json` version matches.
+- [x] AC1. `package.json` name is `@calevi/ssh-mcp-dynamic`, version is 1.1.1 and has `repository`, `homepage`, `bugs`, `publishConfig`; `package-lock.json` version matches.
 - [x] AC2. `.github/workflows/publish.yml` triggers on `release: published`, declares `permissions: contents: read, id-token: write`, runs `npm test`, fails when the tag does not match the version, and publishes with `--provenance`.
 - [x] AC3. `npm publish --dry-run` lists exactly 10 files: `dist/*.js` (7), `LICENSE`, `README.md`, `package.json`; no `src/`, `test/`, `specs/` or `validation-reports/`.
-- [x] AC4. README: Claude Code and Claude Desktop examples use `npx -y ssh-mcp-dynamic`; the `github:` variant and a Releasing section are present; the "Once published to npm" sentence is gone.
+- [x] AC4. README: Claude Code and Claude Desktop examples use `npx -y @calevi/ssh-mcp-dynamic`; the `github:` variant and a Releasing section are present; the "Once published to npm" sentence is gone.
 - [ ] AC5. CI is green on this spec's pull request.
 
 ## Risks & Assumptions
