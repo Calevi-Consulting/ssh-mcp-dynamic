@@ -2,7 +2,7 @@
 
 > **Note**: This work has no associated issue tracker ticket. Consider creating one for traceability.
 
-## Status: INCOMPLETE
+## Status: COMPLETE
 
 ## Context
 
@@ -24,8 +24,12 @@ The existing `npm test` script used a Node CLI glob (`node --test "dir/*.test.js
 - [x] AC1. `.github/workflows/ci.yml` exists with the triggers in R1 and `permissions: contents: read`.
 - [x] AC2. `npm test` passes locally through the new runner (`scripts/run-tests.js`), and a deliberately failing test file makes it exit non-zero.
 - [x] AC3. The smoke test commands from the workflow pass locally against `dist/index.js`.
-- [ ] AC4. The workflow runs on this spec's own pull request and all jobs (Node 18, 20, 22, 24 and the audit job) are green.
+- [x] AC4. The workflow runs on this spec's own pull request and all jobs (Node 18, 20, 22, 24 and the audit job) are green.
 - [x] AC5. README carries the CI badge.
+
+## Executive Summary
+
+Adds a GitHub Actions workflow that builds, tests and smoke-runs the server on Node 18, 20, 22 and 24, and fails on high/critical `npm audit` findings, for every pull request to `main`. Replaces the Node-21-only glob in `npm test` with a portable runner. Verified by the workflow's own run on PR #2 (run 34051778282: all five jobs green).
 
 ## Risks & Assumptions
 
