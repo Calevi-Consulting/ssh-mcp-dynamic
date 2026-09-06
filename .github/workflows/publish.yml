@@ -1,0 +1,50 @@
+name: Publish to npm
+
+# Publishes the package when a GitHub Release is published. Uses npm trusted
+# publishing (OIDC): no long-lived npm token is stored in the repository.
+# One-time setup on npmjs.com: package settings -> Trusted publisher ->
+# GitHub Actions, repository Calevi-Consulting/ssh-mcp-dynamic, workflow
+# publish.yml. The first release of a new package has to be published
+# manually before the trusted publisher can be configured.
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Test and publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - name: Ensure npm supports trusted publishing (>= 11.5.1)
+        run: npm install -g npm@latest && npm --version
+
+      - name: Install
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      - name: Check the release tag matches package.json
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version=$(node -p "require('./package.json').version")
+          if [ "$tag" != "$version" ]; then
+            echo "Release tag v$tag does not match package.json version $version"
+            exit 1
+          fi
+
+      - name: Publish with provenance
+        run: npm publish --provenance --access public
