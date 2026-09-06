@@ -20,7 +20,7 @@ Authentication is key-based only (PEM private keys). No passwords are handled or
 
 ## Install & build
 
-Published on npm as [`ssh-mcp-dynamic`](https://www.npmjs.com/package/ssh-mcp-dynamic); most users run it through `npx` and never build anything (see [Use with Claude Code](#use-with-claude-code-cli)). To work from a local checkout:
+Published on npm as [`@calevi/ssh-mcp-dynamic`](https://www.npmjs.com/package/@calevi/ssh-mcp-dynamic); most users run it through `npx` and never build anything (see [Use with Claude Code](#use-with-claude-code-cli)). To work from a local checkout:
 
 ```bash
 npm install
@@ -107,7 +107,7 @@ The quickest way — no clone, no build. Claude Code runs the published package 
 **Minimal** — no environment config at all. You provide the host, command and a full key path on every call:
 
 ```bash
-claude mcp add ssh-mcp -- npx -y ssh-mcp-dynamic
+claude mcp add ssh-mcp -- npx -y @calevi/ssh-mcp-dynamic
 ```
 
 **With shortcuts and defaults** — preconfigure your keys once so calls can use a short name (e.g. `prod`) and omit the user/port:
@@ -119,10 +119,10 @@ claude mcp add ssh-mcp -s user \
   -e SSH_MCP_DEFAULT_USER=ubuntu \
   -e SSH_MCP_ALLOWED_HOSTS='10.0.0.*,*.internal.example.com' \
   -e SSH_MCP_AUDIT_LOG=~/.ssh-mcp/audit.log \
-  -- npx -y ssh-mcp-dynamic
+  -- npx -y @calevi/ssh-mcp-dynamic
 ```
 
-To pin an exact version use `npx -y ssh-mcp-dynamic@1.1.1`. To run straight from GitHub instead (a tagged release, or `main` without the `#tag`), use `npx -y github:Calevi-Consulting/ssh-mcp-dynamic#v1.1.1`; `npx` then clones and builds it via the `prepare` script.
+To pin an exact version use `npx -y @calevi/ssh-mcp-dynamic@1.1.1`. To run straight from GitHub instead (a tagged release, or `main` without the `#tag`), use `npx -y github:Calevi-Consulting/ssh-mcp-dynamic#v1.1.1`; `npx` then clones and builds it via the `prepare` script.
 
 Prefer a local checkout? Build it once and point Claude Code at the compiled file:
 
@@ -152,7 +152,7 @@ Add the server to your `claude_desktop_config.json`:
   "mcpServers": {
     "ssh-mcp": {
       "command": "npx",
-      "args": ["-y", "ssh-mcp-dynamic"],
+      "args": ["-y", "@calevi/ssh-mcp-dynamic"],
       "env": {
         "SSH_MCP_KEYS": "{\"prod\":\"~/keys/prod.pem\",\"staging\":\"~/keys/staging.pem\"}",
         "SSH_MCP_DEFAULT_KEY": "prod",
