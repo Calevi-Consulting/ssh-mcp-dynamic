@@ -17,6 +17,10 @@ id_ed25519*
 # OS / editor cruft
 .DS_Store
 *.log
+.idea/
+
+# Local Claude Code settings (project config in .claude/CLAUDE.md IS tracked)
+.claude/settings.local.json
 
 # Test build output
 .test-build/
